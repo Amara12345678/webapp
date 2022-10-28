@@ -5,6 +5,8 @@ var uiController = (function () {
     inputDescription: ".add__description",
     inputValue: ".add__value",
     addBtn: ".add__btn",
+    incomelist: ".income__list",
+    expenselist: ".expenses__list",
   };
 
   return {
@@ -20,15 +22,32 @@ var uiController = (function () {
       return DOMstrings;
     },
 
+    clearFields: function () {
+      var fields = document.querySelectorAll(
+        DOMstrings.inputDescription + "," + DOMstrings.inputValue
+      );
+
+      //convert list to Arrey
+      var fieldsArr = Array.prototype.slice.call(fields);
+      fieldsArr.forEach(function (el, index, arrey) {
+        el.value = "";
+      });
+
+      fieldsArr[0].focus();
+      // for (var i = 0; i < fieldsArr.length; i++) {
+      //   fieldsArr[i].value = "";
+      // }
+    },
+
     addListItem: function (item, type) {
       //orlogo zarlagiin elementiig aguulsan html iig beltegne
       var html, list;
       if (type === "inc") {
-        list = ".income__list";
+        list = DOMstrings.incomelist;
         html =
           '<div class="item clearfix" id="income-%id%"><div class="item__description">$$DESCRIPTION$$</div><div class="right clearfix"><div class="item__value">$$VALUE$$</div><div class="item__delete">            <button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div>        </div></div>';
       } else {
-        list = ".expenses__list";
+        list = DOMstrings.expenselist;
         html =
           '<div class="item clearfix" id="expense-%id%"><div class="item__description">$$DESCRIPTION$$</div>          <div class="right clearfix"><div class="item__value">$$VALUE$$</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn">                <i class="ion-ios-close-outline"></i></button></div></div></div>';
       }
@@ -112,7 +131,7 @@ var appController = (function (uiController, financeController) {
     );
     //3.olj awsan ogogdluude web deere tohiroh hesegt n gargana
     uiController.addListItem(item, input.type);
-
+    uiController.clearFields();
     //4.tuswiig tootsoolno
     //5.etssiin vldegdel tootsoog delgetsend gargana
   };
