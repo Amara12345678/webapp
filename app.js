@@ -37,7 +37,7 @@ var financeController = (function () {
   };
 
   var data = {
-    allItems: {
+    items: {
       inc: [],
       exp: [],
     },
@@ -47,13 +47,34 @@ var financeController = (function () {
       exp: 0,
     },
   };
+
+  return {
+    addItem: function (type, desc, val) {
+      var item, id;
+      //
+      if (data.items[type].length === 0) {
+        id = 1;
+      } else {
+        data.items[type][data.items[type].length - 1].id + 1;
+      }
+      if (type === "inc") {
+        item = new Income(id, desc, val);
+      } else {
+        item = new Expence(id, desc, val);
+      }
+
+      data.items[type].push(item);
+    },
+  };
 })();
 
 //програмын холбогч controller
 var appController = (function (uiController, financeController) {
   var ctrlAddItem = function () {
     //1. oruulah ugugdliig delgetsees olj awna
+    var input = uiController.getInput();
     //2.olj awsan ugugluudiig sanhuugiin controllert damjuulj hadgalna
+
     //3.olj awsan ogogdluude web deere tohiroh hesegt n gargana
     //4.tuswiig tootsoolno
     //5.etssiin vldegdel tootsoog delgetsend gargana
