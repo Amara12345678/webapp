@@ -12,9 +12,44 @@ var uiController = (function () {
     expenceLabel: ".budget__expenses--value",
     percentageLabel: ".budget__expenses--percentage",
     containerDiv: ".container",
+    expensePercentageLabel: ".item__percentage",
+    dateLabel: ".budget__title--month",
+  };
+
+  var nodeListForeach = function (list, callback) {
+    for (var i = 0; i < list.length; i++) {
+      callback(list[i], i);
+    }
+  };
+
+  var formatMoney = function (too, type) {
+    too = "" + too;
+    var x = too.split("").reverse().join("");
+
+    var y = "";
+    var count = 1;
+
+    for (var i = 0; i < x.length; i++) {
+      y = y + x[i];
+
+      if (count % 3 === 0) y = y + ",";
+      count++;
+    }
+    var z = y.split("").reverse().join("");
+    if (z[0] === ",") z = z.substr(1, z.length - 1);
+
+    if (type === "inc") z = "+ " + z;
+    else z = " -" + z;
+
+    return z;
   };
 
   return {
+    displayDate: function () {
+      var unuudur = new Date();
+      document.querySelector(DOMstrings.dateLabel).textContent =
+        unuudur.getFullYear() + " оны " + unuudur.getMonth() + " сарын";
+    },
     getInput: function () {
       return {
         type: document.querySelector(DOMstrings.inputType).value,
@@ -23,40 +58,59 @@ var uiController = (function () {
       };
     },
 
+    displayPercentage: function (allPersentages) {
+      //zarlagiin node listiig oloh
+      var elements = document.querySelectorAll(
+        DOMstrings.expensePercentageLabel
+      );
+
+      //element bolgonii huwid zarlagiin huwiig massive aas awch shiwj oruulah
+      nodeListForeach(elements, function (el, index) {
+        el.textContent = allPersentages[index];
+      });
+    },
     getDOMstrings: function () {
       return DOMstrings;
     },
 
     clearFields: function () {
       var fields = document.querySelectorAll(
-        DOMstrings.inputDescription + "," + DOMstrings.inputValue
+        DOMstrings.inputDescription + ", " + DOMstrings.inputValue
       );
 
       //convert list to Arrey
       var fieldsArr = Array.prototype.slice.call(fields);
+
       fieldsArr.forEach(function (el, index, arrey) {
         el.value = "";
       });
 
       fieldsArr[0].focus();
-      // for (var i = 0; i < fieldsArr.length; i++) {
-      //   fieldsArr[i].value = "";
-      // }
     },
 
     tusviigUzuuleh: function (tusuv) {
-      document.querySelector(DOMstrings.tusuvLabel).textContent = tusuv.tusuv;
-      document.querySelector(DOMstrings.incomeLabel).textContent =
-        tusuv.totalInc;
-      document.querySelector(DOMstrings.expenceLabel).textContent =
-        tusuv.totalExp;
+      var type;
+      if (tusuv.tusuv > 0) type = "inc";
+      else type = "exp";
+      document.querySelector(DOMstrings.tusuvLabel).textContent = formatMoney(
+        tusuv.tusuv,
+        type
+      );
+      document.querySelector(DOMstrings.incomeLabel).textContent = formatMoney(
+        tusuv.totalInc,
+        "inc"
+      );
+      document.querySelector(DOMstrings.expenceLabel).textContent = formatMoney(
+        tusuv.totalExp,
+        "exp"
+      );
 
-      if (tusuv.huvi === 0) {
-        document.querySelector(DOMstrings.percentageLabel).textContent =
-          tusuv.huvi;
-      } else {
+      if (tusuv.huvi !== 0) {
         document.querySelector(DOMstrings.percentageLabel).textContent =
           tusuv.huvi + "%";
+      } else {
+        document.querySelector(DOMstrings.percentageLabel).textContent =
+          tusuv.huvi;
       }
     },
 
@@ -80,7 +134,7 @@ var uiController = (function () {
       //html dotroo orlogozgrlagiin utguudiig replace ashiglaj uurchilj ugno
       html = html.replace("%id%", item.id);
       html = html.replace("$$DESCRIPTION$$", item.description);
-      html = html.replace("$$VALUE$$", item.value);
+      html = html.replace("$$VALUE$$", formatMoney(item.value, type));
 
       //beltgesen html ee dom ruu hiij ugnu
       document.querySelector(list).insertAdjacentHTML("beforeend", html);
@@ -102,6 +156,17 @@ var financeController = (function () {
     this.id = id;
     this.description = description;
     this.value = value;
+    this.percentage = -1;
+  };
+
+  Expence.prototype.calcPercentage = function (totalIncome) {
+    if (totalIncome > 0)
+      this.percentage = Math.round((this.value / totalIncome) * 100);
+    else this.percentage = 0;
+  };
+
+  Expence.prototype.getPercentage = function () {
+    return this.percentage;
   };
 
   var calculateTotal = function (type) {
@@ -138,14 +203,34 @@ var financeController = (function () {
       //niit arlagiin niilberiig tootsoolno
       calculateTotal("exp");
       //tusuwiig shineer tootsooolno
+
       data.tusuv = data.totals.inc - data.totals.exp;
 
       //orlogo zarlaga iin huwiig tootsoolno
-      data.huvi = Math.round((data.totals.exp / data.totals.inc) * 100);
+      if (data.totals.inc > 0) {
+        data.huvi = Math.round((data.totals.exp / data.totals.inc) * 100);
+      } else {
+        data.huvi = 0;
+      }
     },
+
+    calculatePercentages: function () {
+      data.items.exp.forEach(function (el) {
+        el.calcPercentage(data.totals.inc);
+      });
+    },
+
+    getPercentages: function () {
+      var allPersentages = data.items.exp.map(function (el) {
+        return el.getPercentage();
+      });
+
+      return allPersentages;
+    },
+
     tusviigAwah: function () {
       return {
-        tusuw: data.tusuv,
+        tusuv: data.tusuv,
         huvi: data.huvi,
         totalInc: data.totals.inc,
         totalExp: data.totals.exp,
@@ -163,6 +248,7 @@ var financeController = (function () {
         data.items[type].splice(index, 1);
       }
     },
+
     addItem: function (type, desc, val) {
       var item, id;
       //
@@ -204,13 +290,28 @@ var appController = (function (uiController, financeController) {
       //3.olj awsan ogogdluude web deere tohiroh hesegt n gargana
       uiController.addListItem(item, input.type);
       uiController.clearFields();
-      //4.tuswiig tootsoolno
-      financeController.tusuvTootsooloh();
-      //5.etssiin vldegdel tootsoog delgetsend gargana
-      var tusuv = financeController.tusviigAwah();
-      //6.tuswiig delgetsend gargana
-      uiController.tusviigUzuuleh(tusuv);
+      // tusviig shiner tootsoolj delgetsend uzuulne
+      updateTusuv();
     }
+  };
+
+  var updateTusuv = function () {
+    //4.tuswiig tootsoolno
+    financeController.tusuvTootsooloh();
+
+    //5.etssiin vldegdel tootsoog delgetsend gargana
+    var tusuv = financeController.tusviigAwah();
+
+    //6.tuswiig delgetsend gargana
+    uiController.tusviigUzuuleh(tusuv);
+
+    //  7. elementuudin huviig tootsoolon
+    financeController.calculatePercentages();
+    //  8.elementuudiin huwiig huleej awna
+    var allPersentages = financeController.getPercentages();
+
+    //9.  edgeer huwiig delgetsend gargana
+    uiController.displayPercentage(allPersentages);
   };
 
   var setupEventListeners = function () {
@@ -228,18 +329,21 @@ var appController = (function (uiController, financeController) {
 
     document
       .querySelector(DOM.containerDiv)
-      .addEventListener("click", function () {
+      .addEventListener("click", function (event) {
         var id = event.target.parentNode.parentNode.parentNode.parentNode.id;
         if (id) {
           var arr = id.split("-");
           var type = arr[0];
           var itemId = parseInt(arr[1]);
 
+          console.log(type + " ===> " + itemId);
+
           //1. sanhuugiin modulaas type id ashiglaad ustagna
           financeController.deleteItem(type, itemId);
           //2. delgets deerees ene elementiig ustgana
           uiController.deleteListItem(id);
           //3. uldegdel tootsoog shinchilj haruulna
+          updateTusuv();
         }
       });
   };
@@ -247,8 +351,9 @@ var appController = (function (uiController, financeController) {
   return {
     init: function () {
       console.log("App started ...");
+      uiController.displayDate();
       uiController.tusviigUzuuleh({
-        tusuw: 0,
+        tusuv: 0,
         huvi: 0,
         totalInc: 0,
         totalExp: 0,
